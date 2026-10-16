@@ -29,6 +29,11 @@ class GameState {
       reticle: document.getElementById('arcaneReticle'),
       instructionsModal: document.getElementById('instructionsModal'),
       gameOverModal: document.getElementById('gameOverModal'),
+      keyConfigModal: document.getElementById('keyConfigModal'),
+      keyConfigBtn: document.getElementById('keyConfigBtn'),
+      saveKeyBtn: document.getElementById('saveKeyBtn'),
+      closeKeyBtn: document.getElementById('closeKeyBtn'),
+      appKeyInput: document.getElementById('appKeyInput'),
       finalScore: document.getElementById('finalScore'),
       finalAccuracy: document.getElementById('finalAccuracy'),
       finalSpirits: document.getElementById('finalSpirits'),
@@ -41,6 +46,38 @@ class GameState {
     };
 
     this.initEvents();
+    this.init8thWallKeyModal();
+  }
+
+  init8thWallKeyModal() {
+    if (this.ui.appKeyInput) {
+      const existingKey = localStorage.getItem('8thwall_app_key') || new URLSearchParams(window.location.search).get('appKey') || '';
+      this.ui.appKeyInput.value = existingKey;
+    }
+
+    if (this.ui.keyConfigBtn && this.ui.keyConfigModal) {
+      this.ui.keyConfigBtn.addEventListener('click', () => {
+        this.ui.keyConfigModal.classList.remove('hidden');
+      });
+    }
+
+    if (this.ui.closeKeyBtn && this.ui.keyConfigModal) {
+      this.ui.closeKeyBtn.addEventListener('click', () => {
+        this.ui.keyConfigModal.classList.add('hidden');
+      });
+    }
+
+    if (this.ui.saveKeyBtn) {
+      this.ui.saveKeyBtn.addEventListener('click', () => {
+        const val = (this.ui.appKeyInput.value || '').trim();
+        if (window.set8thWallKey) {
+          window.set8thWallKey(val);
+        } else {
+          localStorage.setItem('8thwall_app_key', val);
+          window.location.reload();
+        }
+      });
+    }
   }
 
   initEvents() {

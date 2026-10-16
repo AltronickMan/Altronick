@@ -82,36 +82,94 @@ AFRAME.registerComponent('ar-manager', {
 
   // 3. 8th Wall Camera & Hand Pipeline Integration
   initXR8Pipeline: function () {
-    if (window.XR8) {
+    const setupPipeline = () => {
+      if (!window.XR8) return;
       this.is8thWallActive = true;
-      console.log('[Arcane Strike] 8th Wall XR Engine detected. Initializing pipeline...');
+      console.log('[Arcane Strike] 8th Wall XR Engine active. Configuring camera pipeline...');
+
+      const statusPill = document.getElementById('xr8StatusPill');
+      if (statusPill) {
+        statusPill.textContent = '🌐 8TH WALL SLAM ACTIVE';
+        statusPill.className = 'status-tag status-active';
+      }
+
+      // Hide standalone fallback video when 8th Wall takes over rendering
+      const videoBg = document.getElementById('arCameraFeed');
+      if (videoBg) videoBg.style.display = 'none';
 
       // Custom pipeline module for Arcane Strike
       const arcanePipelineModule = () => ({
-        name: 'arcanestrike',
+        name: 'arcanestrike-pipeline',
         onStart: () => {
-          console.log('[Arcane Strike] XR8 Pipeline Started.');
-          const statusEl = document.getElementById('trackingPill');
-          if (statusEl) statusEl.textContent = 'SLAM WORLD TRACKING ACTIVE';
+          console.log('[Arcane Strike] 8th Wall Camera Pipeline Started.');
+          if (statusPill) statusPill.textContent = '🌐 8TH WALL SLAM ON';
         },
         listeners: [
           {
+            event: 'reality.ready',
+            process: (event) => {
+              console.log('[Arcane Strike] 8th Wall Reality Surface Tracking Ready.');
+            }
+          },
+          {
             event: 'reality.projectchange',
             process: (event) => {
-              // Surface tracking updates
+              // Surface / floor anchoring updates from 8th Wall SLAM
+              if (event && event.detail && event.detail.position) {
+                const groundEl = document.getElementById('arGroundPlane');
+                if (groundEl) groundEl.object3D.position.y = event.detail.position.y;
+              }
+            }
+          },
+          {
+            event: 'handcontroller.handloading',
+            process: (event) => {
+              window.dispatchEvent(new CustomEvent('xrhandloading', { detail: event }));
+            }
+          },
+          {
+            event: 'handcontroller.handfound',
+            process: (event) => {
+              window.dispatchEvent(new CustomEvent('xrhandfound', { detail: event }));
+            }
+          },
+          {
+            event: 'handcontroller.handupdated',
+            process: (event) => {
+              window.dispatchEvent(new CustomEvent('xrhandupdated', { detail: event }));
+            }
+          },
+          {
+            event: 'handcontroller.handlost',
+            process: (event) => {
+              window.dispatchEvent(new CustomEvent('xrhandlost', { detail: event }));
             }
           }
         ]
       });
 
       if (window.XR8.addCameraPipelineModules) {
-        window.XR8.addCameraPipelineModules([
+        const modules = [
           window.XR8.GlTextureRenderer ? window.XR8.GlTextureRenderer.pipelineModule() : null,
           window.XR8.Threejs ? window.XR8.Threejs.pipelineModule() : null,
           window.XR8.XrController ? window.XR8.XrController.pipelineModule() : null,
+          window.XR8.HandController ? window.XR8.HandController.pipelineModule() : null,
+          window.XRExtras && window.XRExtras.AlmostThere ? window.XRExtras.AlmostThere.pipelineModule() : null,
+          window.XRExtras && window.XRExtras.FullWindowCanvas ? window.XRExtras.FullWindowCanvas.pipelineModule() : null,
+          window.XRExtras && window.XRExtras.Loading ? window.XRExtras.Loading.pipelineModule() : null,
+          window.XRExtras && window.XRExtras.RuntimeError ? window.XRExtras.RuntimeError.pipelineModule() : null,
           arcanePipelineModule()
-        ].filter(Boolean));
+        ].filter(Boolean);
+
+        window.XR8.addCameraPipelineModules(modules);
+        console.log(`[Arcane Strike] Registered ${modules.length} 8th Wall pipeline modules.`);
       }
+    };
+
+    if (window.XR8) {
+      setupPipeline();
+    } else {
+      window.addEventListener('xrloaded', setupPipeline, { once: true });
     }
   },
 

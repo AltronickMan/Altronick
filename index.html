@@ -11,20 +11,45 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-  <!-- A-Frame Library (Local self-contained bundle with CDN fallback) -->
-  <script src="libs/aframe.min.js"></script>
+  <!-- 8th Wall 8frame (A-Frame v1.4.1 customized for 8th Wall XR Engine) -->
+  <script src="//cdn.8thwall.com/web/aframe/8frame-1.4.1.min.js"></script>
   <script>
     if (!window.AFRAME) {
-      document.write('<script src="https://aframe.io/releases/1.5.0/aframe.min.js"><\/script>');
+      document.write('<script src="libs/aframe.min.js"><\/script>');
     }
   </script>
 
-  <!-- 8th Wall XR Engine Pipeline Script Detection (Optional 8th Wall Cloud integration) -->
+  <!-- 8th Wall XR Extras -->
+  <script src="//cdn.8thwall.com/web/xrextras/xrextras.js"></script>
+
+  <!-- 8th Wall XR Engine (xrweb) Loader with App Key & Cloud Studio Detection -->
   <script>
-    // Config hook for 8th Wall Studio if loaded in an 8th Wall workspace
-    window.onXR8Ready = function() {
-      console.log('[Arcane Strike] XR8 Ready signal received.');
-    };
+    (function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const appKey = urlParams.get('appKey') || localStorage.getItem('8thwall_app_key') || '';
+      const is8thWallDomain = window.location.hostname.includes('8thwall.app') || window.location.hostname.includes('8thwall.io');
+
+      const xrScript = document.createElement('script');
+      if (appKey) {
+        xrScript.src = `//apps.8thwall.com/xrweb?appKey=${encodeURIComponent(appKey)}`;
+      } else if (is8thWallDomain) {
+        xrScript.src = '//apps.8thwall.com/xrweb';
+      } else {
+        // Self-hosted / local dev: load xrweb so XR8 API is ready
+        xrScript.src = '//apps.8thwall.com/xrweb';
+      }
+      xrScript.async = true;
+      document.head.appendChild(xrScript);
+
+      window.set8thWallKey = function(key) {
+        if (key) {
+          localStorage.setItem('8thwall_app_key', key);
+          const url = new URL(window.location.href);
+          url.searchParams.set('appKey', key);
+          window.location.href = url.toString();
+        }
+      };
+    })();
   </script>
 
   <!-- Cyberpunk Arcade Glassmorphism HUD Styles -->
@@ -79,6 +104,7 @@
     <!-- Bottom Action Bar & Controls -->
     <footer class="hud-footer">
       <div class="status-pill-container">
+        <span id="xr8StatusPill" class="status-tag status-active">🌐 8TH WALL XR</span>
         <span id="handTrackingStatus" class="status-tag status-fallback">✋ VIRTUAL SPELL RING ACTIVE</span>
       </div>
 
@@ -100,6 +126,7 @@
           <span>CAST SPELL</span>
           <span style="font-size: 20px;">⚡</span>
         </button>
+        <button id="keyConfigBtn" class="btn-icon" aria-label="8th Wall Config" title="8th Wall Settings">⚙️</button>
       </div>
     </footer>
   </div>
@@ -178,8 +205,38 @@
     </div>
   </div>
 
-  <!-- Core A-Frame 3D / WebXR Scene -->
+  <!-- 8th Wall Engine Key Configuration Modal -->
+  <div id="keyConfigModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div>
+        <h2 class="game-title" style="font-size: 20px;">8TH WALL XR ENGINE</h2>
+        <p class="subtitle">NIANTIC WEBAR PIPELINE CONFIGURATION</p>
+      </div>
+
+      <div style="text-align: left; display: flex; flex-direction: column; gap: 8px;">
+        <label class="hud-label">8TH WALL APP KEY (SELF-HOSTED / CUSTOM DOMAIN):</label>
+        <input id="appKeyInput" type="text" placeholder="Paste your 8th Wall App Key..." style="width: 100%; padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--primary-neon); border-radius: 8px; color: #fff; font-family: monospace; outline: none;">
+        <p style="font-size: 12px; color: #9ca3af; line-height: 1.4;">
+          * If hosted on <strong>8th Wall Cloud Studio</strong>, leave blank (authentication is handled automatically).<br>
+          * If self-hosting on GitHub Pages or custom domain, enter your 8th Wall Workspace App Key.
+        </p>
+      </div>
+
+      <div style="display: flex; gap: 10px;">
+        <button id="saveKeyBtn" class="btn-cta" style="flex: 1; height: 46px;">SAVE & ACTIVATE ⚡</button>
+        <button id="closeKeyBtn" class="btn-cta" style="flex: 1; height: 46px; background: rgba(255,255,255,0.15); color: #fff;">CLOSE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Core A-Frame 3D / WebXR Scene with 8th Wall World Tracking & Hand Tracking -->
   <a-scene
+    xrweb="allowedDevices: any"
+    xrhand
+    xrextras-loading
+    xrextras-runtime-error
+    xrextras-almost-there
+    xrextras-pause-on-blur
     ar-manager
     caster-controller
     vr-mode-ui="enabled: false"

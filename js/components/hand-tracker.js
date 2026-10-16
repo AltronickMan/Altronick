@@ -80,8 +80,13 @@ AFRAME.registerComponent('hand-tracker', {
     this.isHandTracked = true;
     if (!detail) return;
 
-    // detail can come from 8th Wall xrhandupdated event
-    const palm = detail.transform || detail.palm || (detail.attachmentPoints && detail.attachmentPoints.wrist);
+    // Safely unwrap nested detail if forwarded from CustomEvent
+    const data = (detail.detail) ? detail.detail : detail;
+
+    // 8th Wall Hand Tracking joint hierarchy: wrist or palm
+    const palm = data.transform || data.palm || 
+      (data.attachmentPoints && (data.attachmentPoints.wrist || data.attachmentPoints.palm || data.attachmentPoints.wristBack));
+
     if (palm && palm.position) {
       this.targetPosition.set(palm.position.x, palm.position.y, palm.position.z);
     }

@@ -60,9 +60,18 @@ Altronick/
 
 ---
 
-## 🌐 Niantic 8th Wall Cloud Studio Integration
+## 🌐 Niantic 8th Wall XR Integration
 
-To deploy to Niantic 8th Wall Cloud Studio:
-1. Create a new A-Frame project in your 8th Wall workspace.
-2. Ensure the `hand-tracking` and `world-tracking` features are toggled **ON** in `app.json`.
-3. The included `js/components/hand-tracker.js` and `js/components/ar-manager.js` automatically hook into `xrhandloading`, `xrhandfound`, `xrhandupdated`, and `xrhandlost` pipeline events.
+### 1. Engine & Libraries
+- **8frame (A-Frame v1.4.1 for 8th Wall)**: Loaded directly via `https://cdn.8thwall.com/web/aframe/8frame-1.4.1.min.js`.
+- **XRExtras**: Handles loading coaching overlays, runtime error modals, and fullscreen canvas initialization (`https://cdn.8thwall.com/web/xrextras/xrextras.js`).
+- **XR8 Camera Pipeline Modules**: Registers `XR8.GlTextureRenderer`, `XR8.Threejs`, `XR8.XrController`, `XR8.HandController`, and custom `arcanestrike-pipeline` via `XR8.addCameraPipelineModules`.
+
+### 2. Hand Tracking Pipeline
+- Integrates with 8th Wall hand events: `xrhandloading`, `xrhandfound`, `xrhandupdated`, `xrhandlost`.
+- Extracts 8th Wall joint attachment points (`wrist`, `palm`, `indexTip`, `thumbTip`) to anchor the 3D Arcane Ring and compute forward palm thrust velocity ($\Delta Z$).
+
+### 3. Deployment Modes
+- **8th Wall Cloud Studio**: When uploaded to 8th Wall Cloud Studio, the platform automatically authenticates without requiring an App Key.
+- **Self-Hosted / GitHub Pages**: Click the **⚙️** button in the HUD or pass `?appKey=YOUR_KEY` in the URL to activate your 8th Wall App Key.
+- **Local / Universal Fallback**: If running without an 8th Wall key, the built-in fallback camera passthrough with 6DoF gyroscope tracking runs automatically.

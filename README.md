@@ -2,6 +2,8 @@
 
 A complete, production-ready WebAR arcade mini-game built for **Niantic 8th Wall** and **A-Frame WebXR** environments.
 
+**Live WebAR Demo:** [https://altronickman.github.io/Altronick/](https://altronickman.github.io/Altronick/)
+
 ---
 
 ## 🔮 Core Game Loop

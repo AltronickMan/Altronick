@@ -18,8 +18,17 @@ AFRAME.registerComponent('ar-manager', {
 
     this.setupGroundPlane();
     this.setupArenaGrid();
-    this.initXR8Pipeline();
-    this.initUniversalCameraPassthrough();
+
+    if (window.is8thWallEnabled) {
+      this.initXR8Pipeline();
+    } else {
+      const statusPill = document.getElementById('xr8StatusPill');
+      if (statusPill) {
+        statusPill.textContent = '🌐 WEBAR ACTIVE (TAP ⚙️ FOR 8TH WALL)';
+        statusPill.className = 'status-tag status-fallback';
+      }
+      this.initUniversalCameraPassthrough();
+    }
   },
 
   // 1. Invisible ground plane for spatial collisions & bounds
@@ -168,7 +177,7 @@ AFRAME.registerComponent('ar-manager', {
 
     if (window.XR8) {
       setupPipeline();
-    } else {
+    } else if (window.is8thWallEnabled) {
       window.addEventListener('xrloaded', setupPipeline, { once: true });
     }
   },

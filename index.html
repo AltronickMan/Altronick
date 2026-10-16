@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Arcane Strike: WebAR Spirit Hunter</title>
+  <meta name="description" content="Production-ready WebAR spirit hunting arcade mini-game powered by A-Frame and 8th Wall XR. Cast kinetic mana orbs with hand gestures to banish floating elemental spirits.">
+  <meta name="theme-color" content="#05070e">
+
+  <!-- iOS WebAR Web App Capabilities -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <!-- A-Frame Library (Local self-contained bundle with CDN fallback) -->
+  <script src="libs/aframe.min.js"></script>
+  <script>
+    if (!window.AFRAME) {
+      document.write('<script src="https://aframe.io/releases/1.5.0/aframe.min.js"><\/script>');
+    }
+  </script>
+
+  <!-- 8th Wall XR Engine Pipeline Script Detection (Optional 8th Wall Cloud integration) -->
+  <script>
+    // Config hook for 8th Wall Studio if loaded in an 8th Wall workspace
+    window.onXR8Ready = function() {
+      console.log('[Arcane Strike] XR8 Ready signal received.');
+    };
+  </script>
+
+  <!-- Cyberpunk Arcade Glassmorphism HUD Styles -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- WebAR Passthrough Camera Feed for Mobile Browsers -->
+  <video id="arCameraFeed" autoplay playsinline muted></video>
+
+  <!-- Master Interactive HUD Overlay -->
+  <div id="hudLayer">
+    <!-- Top Arcade Header Bar -->
+    <header class="hud-header">
+      <div class="glass-panel panel-score">
+        <span class="hud-label">SCORE</span>
+        <div id="scoreDisplay" class="hud-value-large">0000</div>
+      </div>
+
+      <div class="glass-panel panel-timer">
+        <span class="hud-label">TIME</span>
+        <div id="timerDisplay" class="timer-value">60s</div>
+        <div class="timer-bar-track">
+          <div id="timerFill" class="timer-bar-fill"></div>
+        </div>
+      </div>
+
+      <div class="glass-panel panel-status">
+        <span class="hud-label">ACCURACY</span>
+        <div class="sub-stats">
+          <div class="stat-item"><span id="accuracyText">100%</span></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Dynamic Combo Streak Banner -->
+    <div id="comboContainer">
+      <div id="comboText" class="combo-badge">COMBO x2!</div>
+    </div>
+
+    <!-- Center Arcane Aim Reticle with Target Lock-on Indicator -->
+    <div id="arcaneReticle" class="reticle-container">
+      <div class="reticle-ring">
+        <div class="reticle-center-dot"></div>
+        <div class="reticle-bracket rb-tl"></div>
+        <div class="reticle-bracket rb-tr"></div>
+        <div class="reticle-bracket rb-bl"></div>
+        <div class="reticle-bracket rb-br"></div>
+      </div>
+    </div>
+
+    <!-- Bottom Action Bar & Controls -->
+    <footer class="hud-footer">
+      <div class="status-pill-container">
+        <span id="handTrackingStatus" class="status-tag status-fallback">✋ VIRTUAL SPELL RING ACTIVE</span>
+      </div>
+
+      <!-- Mana Spell Charge / Cooldown Meter -->
+      <div class="cooldown-wrapper glass-panel">
+        <div class="cooldown-header">
+          <span>MANA CHANNEL</span>
+          <span>READY</span>
+        </div>
+        <div class="cooldown-track">
+          <div id="cooldownFill" class="cooldown-fill"></div>
+        </div>
+      </div>
+
+      <!-- Action Row -->
+      <div class="controls-row">
+        <button id="muteBtn" class="btn-icon" aria-label="Toggle Sound">🔊</button>
+        <button id="castBtn" class="btn-cast" aria-label="Cast Arcane Spell">
+          <span>CAST SPELL</span>
+          <span style="font-size: 20px;">⚡</span>
+        </button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Dismissible Onboarding Instructions Overlay -->
+  <div id="instructionsModal" class="modal-overlay">
+    <div class="modal-card">
+      <div>
+        <h1 class="game-title">ARCANE STRIKE</h1>
+        <p class="subtitle">WEBAR SPIRIT HUNTER</p>
+      </div>
+
+      <div class="instruction-list">
+        <div class="step-card">
+          <div class="step-icon">📱</div>
+          <div class="step-text">
+            <h4>1. Point Camera at Floor</h4>
+            <p>Establish SLAM spatial tracking in your physical room.</p>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-icon">✋</div>
+          <div class="step-text">
+            <h4>2. Raise Your Hand</h4>
+            <p>Summon the rotating 3D Arcane Ring onto your wrist/palm.</p>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-icon">⚡</div>
+          <div class="step-text">
+            <h4>3. Thrust Palm or Tap CAST</h4>
+            <p>Fire kinetic mana projectiles to banish floating elemental spirits!</p>
+          </div>
+        </div>
+      </div>
+
+      <button id="startHuntBtn" class="btn-cta">START HUNT ⚡</button>
+    </div>
+  </div>
+
+  <!-- Game Over Modal -->
+  <div id="gameOverModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div>
+        <h2 class="game-title">MANA DEPLETED</h2>
+        <p class="subtitle">60-SECOND HUNT COMPLETE</p>
+      </div>
+
+      <div class="rank-badge">
+        <div class="hud-label" style="color: #ffbe0b;">HUNTER RATING</div>
+        <div id="finalRank" class="rank-title">A-RANK SORCERER</div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-box">
+          <span class="stat-box-title">FINAL SCORE</span>
+          <span id="finalScore" class="stat-box-num">0</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-box-title">SPIRITS BANISHED</span>
+          <span id="finalSpirits" class="stat-box-num">0</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-box-title">ACCURACY</span>
+          <span id="finalAccuracy" class="stat-box-num">0%</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-box-title">HIGH SCORE</span>
+          <span id="highScoreDisplay" class="stat-box-num">0</span>
+        </div>
+      </div>
+
+      <button id="playAgainBtn" class="btn-cta">PLAY AGAIN ⚡</button>
+    </div>
+  </div>
+
+  <!-- Core A-Frame 3D / WebXR Scene -->
+  <a-scene
+    ar-manager
+    caster-controller
+    vr-mode-ui="enabled: false"
+    renderer="antialias: true; alpha: true; colorManagement: true; powerPreference: high-performance;"
+    embedded
+    style="background: transparent;">
+
+    <!-- Scene Lighting -->
+    <a-light type="ambient" color="#556688" intensity="0.9"></a-light>
+    <a-light type="directional" color="#ffffff" intensity="1.4" position="3 6 2"></a-light>
+
+    <!-- Main Player Camera Rig -->
+    <a-entity id="cameraRig" position="0 0 0">
+      <a-camera
+        id="mainCamera"
+        position="0 1.6 0"
+        look-controls="enabled: true; reverseMouseDrag: false;"
+        wasd-controls="enabled: true">
+      </a-camera>
+    </a-entity>
+
+    <!-- Procedural 3D Arcane Spell Ring -->
+    <a-entity
+      id="playerSpellRing"
+      arcane-spell-ring="color: #00f0ff; accentColor: #ff00aa; radius: 0.22"
+      position="0.25 1.38 -0.65">
+      <!-- Dynamic Light emitted from player spell ring -->
+      <a-light type="point" color="#00f0ff" intensity="1.2" distance="4"></a-light>
+    </a-entity>
+
+    <!-- Hand Tracker Entity (Listens for 8th Wall Hand Events & Palm Gestures) -->
+    <a-entity id="handTracker" hand-tracker="spellRingId: playerSpellRing"></a-entity>
+
+    <!-- Target Elemental Spirits (3 Distinct Low-Poly Creatures) -->
+    <a-entity id="spirit-pyro" spirit-creature="type: pyro; boundsRadius: 4.2; minHeight: 1.1; maxHeight: 2.1;"></a-entity>
+    <a-entity id="spirit-cryo" spirit-creature="type: cryo; boundsRadius: 4.2; minHeight: 1.2; maxHeight: 2.2;"></a-entity>
+    <a-entity id="spirit-void" spirit-creature="type: void; boundsRadius: 4.2; minHeight: 1.0; maxHeight: 2.0;"></a-entity>
+
+  </a-scene>
+
+  <!-- Modular Game Scripts -->
+  <script src="js/audio.js"></script>
+  <script src="js/components/spell-ring.js"></script>
+  <script src="js/components/hand-tracker.js"></script>
+  <script src="js/components/spirit-creature.js"></script>
+  <script src="js/components/projectile.js"></script>
+  <script src="js/components/ar-manager.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>

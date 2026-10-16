@@ -1,0 +1,31 @@
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor & IDE directories
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Node & dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Antigravity & Agent workspace artifacts
+.agents/
+.gemini/
+.system_generated/
+*.log
+
+# Temporary builds / dist
+dist/
+build/
+tmp/
+scratch/
